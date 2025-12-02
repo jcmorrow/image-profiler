@@ -150,7 +150,7 @@ function ImageCard({
             src={url}
             alt={`Image ${index + 1}`}
             onLoad={() => handleImageLoad(startTime)}
-            onError={handleImageError}
+            onError={() => handleImageError()}
           />
           {loadTime !== null && (
             <div className="load-time">{loadTime.toFixed(0)}ms</div>
