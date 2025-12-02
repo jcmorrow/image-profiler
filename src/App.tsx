@@ -50,17 +50,33 @@ function ImageCard({
   const [error2, setError2] = useState(false);
   const [loading2, setLoading2] = useState(true);
 
-  const handleImageLoad = (startTime: number, isSecondImage = false) => {
-    const endTime = performance.now();
-    const duration = endTime - startTime;
-    if (isSecondImage) {
-      setLoadTime2(duration);
-      setLoading2(false);
+  const handleImageLoad = (imageUrl: string, isSecondImage = false) => {
+    // Use Resource Timing API to get accurate network timing
+    const resources = performance.getEntriesByName(imageUrl, 'resource') as PerformanceResourceTiming[];
+
+    if (resources.length > 0) {
+      // Get the most recent entry for this URL
+      const resource = resources[resources.length - 1];
+      // Calculate total time from fetch start to response end (the actual network time)
+      const duration = resource.responseEnd - resource.fetchStart;
+
+      if (isSecondImage) {
+        setLoadTime2(duration);
+        setLoading2(false);
+      } else {
+        setLoadTime(duration);
+        setLoading(false);
+      }
+      onLoadComplete(index, duration, isSecondImage);
     } else {
-      setLoadTime(duration);
-      setLoading(false);
+      // Fallback: if resource timing not available, just mark as loaded with null time
+      console.warn('Resource timing not available for:', imageUrl);
+      if (isSecondImage) {
+        setLoading2(false);
+      } else {
+        setLoading(false);
+      }
     }
-    onLoadComplete(index, duration, isSecondImage);
   };
 
   const handleImageError = (isSecondImage = false) => {
@@ -72,9 +88,6 @@ function ImageCard({
       setLoading(false);
     }
   };
-
-  const startTime = performance.now();
-  const startTime2 = performance.now();
 
   if (mode === "comparison" && url2) {
     const domain1 = new URL(url).hostname;
@@ -92,7 +105,7 @@ function ImageCard({
               <img
                 src={url}
                 alt={`Image ${index + 1} - ${domain1}`}
-                onLoad={() => handleImageLoad(startTime, false)}
+                onLoad={() => handleImageLoad(url, false)}
                 onError={() => handleImageError(false)}
               />
               {loadTime !== null && (
@@ -111,7 +124,7 @@ function ImageCard({
               <img
                 src={url2}
                 alt={`Image ${index + 1} - ${domain2}`}
-                onLoad={() => handleImageLoad(startTime2, true)}
+                onLoad={() => handleImageLoad(url2, true)}
                 onError={() => handleImageError(true)}
               />
               {loadTime2 !== null && (
@@ -149,7 +162,7 @@ function ImageCard({
           <img
             src={url}
             alt={`Image ${index + 1}`}
-            onLoad={() => handleImageLoad(startTime)}
+            onLoad={() => handleImageLoad(url)}
             onError={() => handleImageError()}
           />
           {loadTime !== null && (
